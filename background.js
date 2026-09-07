@@ -23,9 +23,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 async function setupInitialSettings() {
   const currentSettings = await chrome.storage.local.get(SETTINGS_KEY);
   const defaults = {
-    defaultChunkSizeMinutes: 5,
+    defaultChunkSizeMinutes: 15,
     dailyGoalMinutes: 30, // Default goal: 30 mins
-    enableReminders: true,
+    enableReminders: false,
     reminderTime: "09:00" // Default reminder time: 9 AM
   };
 
