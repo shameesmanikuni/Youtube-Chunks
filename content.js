@@ -9,7 +9,7 @@ let player;
 let currentVideoId = null;
 let currentVideoTitle = '';
 let videoDuration = 0;
-let chunkSizeMinutes = 15; // Default, will be overridden by settings/video data
+let chunkSizeMinutes = 5; // Default, will be overridden by settings/video data
 let chunkSizeSeconds = chunkSizeMinutes * 60;
 let totalChunks = 0;
 let completedChunks = 0;
@@ -21,6 +21,11 @@ let taskListToggleBtn;
 let lastConfirmedChunkIndex = -1; // Track the *index* (0-based)
 let completionCheckDebounceTimer = null; // Timer for debouncing end-of-video check
 let isShowingModal = false; // Flag to prevent stacking modals
+
+// Session-only flag: true if tracking/chunks are active for THIS video right now.
+// Not persisted by itself — resets to false on every page load UNLESS the video
+// is already saved in the extension's watch list (see initializeExtension).
+let isTrackingEnabled = false;
 
 // --- Initialization ---
 function getVideoId() {
@@ -50,13 +55,21 @@ async function initializeExtension() {
         const { settings, videoData } = await loadInitialData();
 
         // Determine chunk size (video-specific > default setting)
-        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 15;
+        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 5;
         chunkSizeSeconds = chunkSizeMinutes * 60;
         console.log(`Using chunk size: ${chunkSizeMinutes} minutes (${chunkSizeSeconds} seconds)`);
 
-        // Create UI Elements
-        createOrUpdateTaskListOverlay(); // Use createOrUpdate function
-        addOrUpdateToggleButtonToPlayer(); // Use createOrUpdate function
+        // Tracking is only auto-active if this video is already saved to the
+        // persisted watch list. Otherwise it starts OFF for this page load.
+        isTrackingEnabled = !!videoData;
+
+        // The toggle button always gets created so the user has a way to turn
+        // tracking on manually. The task list overlay/markers only get created
+        // right now if tracking is already enabled.
+        addOrUpdateToggleButtonToPlayer();
+        if (isTrackingEnabled) {
+            createOrUpdateTaskListOverlay();
+        }
 
         // Setup event listeners
         player.addEventListener('loadedmetadata', handleVideoMetadataLoaded);
@@ -72,8 +85,7 @@ async function initializeExtension() {
         }
 
     } catch (error) {
-        console.error('YT Course Chunk Master: Error initializing extension:', error.name, '-', error.message);
-        console.error('Full stack:', error.stack);
+        console.error('YT Course Chunk Master: Error initializing extension:', error);
     }
 }
 
@@ -118,7 +130,7 @@ async function loadInitialData() {
 }
 
 async function saveProgress() {
-    if (!currentVideoId) return;
+    if (!currentVideoId || !isTrackingEnabled) return;
 
     console.log(`Saving progress: ${completedChunks}/${totalChunks} chunks.`);
     try {
@@ -174,6 +186,11 @@ function handleVideoMetadataLoaded() {
         return; // Don't proceed if duration is bad
     }
 
+    if (!isTrackingEnabled) {
+        console.log("Tracking not enabled for this video yet, skipping chunk setup.");
+        return;
+    }
+
     resetAndCalculateChunks();
     updateProgressMarkers(); // Create or update markers
     updateTaskList(); // Update task list UI
@@ -181,6 +198,7 @@ function handleVideoMetadataLoaded() {
 }
 
 function handleTimeUpdate() {
+    if (!isTrackingEnabled) return; // Do nothing until the user turns tracking on
     if (!player || !videoDuration || isNaN(player.currentTime) || isNaN(chunkSizeSeconds) || chunkSizeSeconds <= 0) return; // Sanity checks
 
     const currentTime = player.currentTime;
@@ -217,6 +235,7 @@ function handleTimeUpdate() {
 }
 
 function handleSeek() {
+    if (!isTrackingEnabled) return; // Do nothing until the user turns tracking on
     if (!player || !videoDuration || isNaN(player.currentTime)) return;
 
     const currentTime = player.currentTime;
@@ -411,17 +430,27 @@ function addOrUpdateToggleButtonToPlayer() {
         // Styles like width/height are handled by ytp-button class
 
         taskListToggleBtn.addEventListener('click', () => {
-            toggleTaskListVisibility();
+            if (!isTrackingEnabled) {
+                // First click on a new video: turn tracking on for this session only.
+                // This is NOT saved — reload the page and it resets to off unless
+                // the video has been added to the watch list via the popup.
+                console.log("Enabling tracking for this session.");
+                isTrackingEnabled = true;
+                createOrUpdateTaskListOverlay();
+                if (videoDuration) {
+                    resetAndCalculateChunks();
+                    updateProgressMarkers();
+                    updateTaskList();
+                }
+                updateToggleButtonState();
+            } else {
+                toggleTaskListVisibility();
+            }
         });
 
-        // Insert before the settings button
-        const settingsBtn = controls.querySelector('.ytp-settings-button');
-        if (settingsBtn && settingsBtn.parentNode === controls) {
-            controls.insertBefore(taskListToggleBtn, settingsBtn);
-        } else {
-        // Fallback: append to the end if settings button not found or not a direct child
-            controls.appendChild(taskListToggleBtn);
-        }
+        // Insert as the FIRST button in the right-controls group (leftmost),
+        // before captions/settings/fullscreen etc.
+        controls.insertBefore(taskListToggleBtn, controls.firstChild);
     } else {
         console.log("Task list toggle button already exists.");
     }
@@ -430,7 +459,11 @@ function addOrUpdateToggleButtonToPlayer() {
 
 function updateToggleButtonState() {
     if (!taskListToggleBtn) return;
-    // Maybe add visual feedback like changing opacity or icon slightly
+    if (!isTrackingEnabled) {
+        taskListToggleBtn.style.opacity = '0.4';
+        taskListToggleBtn.title = 'Click to enable task tracking for this video';
+        return;
+    }
     taskListToggleBtn.style.opacity = isTaskListVisible ? '1' : '0.7';
     taskListToggleBtn.title = isTaskListVisible ? 'Hide Course Task List' : 'Show Course Task List';
 }
