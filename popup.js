@@ -103,10 +103,6 @@ function updateSettingsUI() {
     if (!settings) return;
     chunkSizeInput.value = settings.defaultChunkSizeMinutes || 5; // Use default if current video has none yet
     dailyGoalInput.value = settings.dailyGoalMinutes || 30;
-    enableRemindersToggle.checked = settings.enableReminders ?? true; // Default to true if not set
-    reminderTimeInput.value = settings.reminderTime || "09:00";
-    reminderTimeInput.disabled = !enableRemindersToggle.checked;
-    saveReminderSettingsBtn.disabled = !enableRemindersToggle.checked;
 }
 
 function updateCurrentVideoUI() {
