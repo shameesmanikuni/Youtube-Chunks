@@ -8,7 +8,7 @@ let loadingState, errorState, mainContent, currentVideoTitle, progressText,
     progressBar, completionEstimateLabel, completionEstimate, addVideoBtn,
     taskListToggleBtn, videoListContainer, videoListEmpty, chunkSizeInput,
     applyChunkSizeBtn, dailyGoalInput, saveDailyGoalBtn,
-    enableRemindersToggle, reminderTimeInput, saveReminderSettingsBtn, statusMessage, darkModeToggle;
+    statusMessage, darkModeToggle;
 
 // --- State ---
 let currentTabId = null;
@@ -66,9 +66,6 @@ function mapDOMElements() {
     applyChunkSizeBtn = document.getElementById('apply-chunk-size-btn');
     dailyGoalInput = document.getElementById('daily-goal-input');
     saveDailyGoalBtn = document.getElementById('save-daily-goal-btn');
-    enableRemindersToggle = document.getElementById('enable-reminders-toggle');
-    reminderTimeInput = document.getElementById('reminder-time-input');
-    saveReminderSettingsBtn = document.getElementById('save-reminder-settings-btn');
     statusMessage = document.getElementById('status-message');
     darkModeToggle = document.getElementById('dark-mode-toggle');
 }
@@ -78,8 +75,6 @@ function setupEventListeners() {
     taskListToggleBtn.addEventListener('click', handleToggleTaskList);
     applyChunkSizeBtn.addEventListener('click', handleApplyChunkSize);
     saveDailyGoalBtn.addEventListener('click', handleSaveDailyGoal);
-    saveReminderSettingsBtn.addEventListener('click', handleSaveReminderSettings);
-    enableRemindersToggle.addEventListener('change', handleToggleReminderEnable); // Also trigger save on check change
     darkModeToggle.addEventListener('change', handleDarkModeToggle); // Add listener
 }
 
@@ -322,53 +317,14 @@ async function handleSaveDailyGoal() {
      // No need to notify background - goal is used locally in popup and potentially by background on alarm trigger
 }
 
-async function handleSaveReminderSettings() {
-    const time = reminderTimeInput.value;
-    const enabled = enableRemindersToggle.checked;
-
-     // Basic time validation (HH:MM format)
-    if (!/^\d{2}:\d{2}$/.test(time)) {
-        showStatus('Invalid time format (HH:MM).', 'error');
-        reminderTimeInput.value = settings.reminderTime; // Restore previous
-        return;
-    }
-
-    settings.enableReminders = enabled;
-    settings.reminderTime = time;
-
-    await saveDataToStorage();
-    showStatus('Reminder settings saved!', 'success');
-
-    // Notify background script to reschedule alarms
-    chrome.runtime.sendMessage({ action: 'rescheduleReminders' }, (response) => {
-        if (response?.success) {
-            console.log("Background confirmed reminder reschedule.");
-        } else {
-            console.error("Background failed to reschedule reminders:", response?.error);
-            showStatus('Could not update reminder schedule.', 'error');
-        }
-    });
-
-    // Update UI state
-    reminderTimeInput.disabled = !enabled;
-    saveReminderSettingsBtn.disabled = !enabled;
-}
-
-async function handleToggleReminderEnable() {
-     // This implicitly triggers a save because the save button covers both
-     await handleSaveReminderSettings();
-}
-
 
 // --- Data Handling ---
 
 async function loadDataFromStorage() {
     const result = await chrome.storage.local.get([SETTINGS_KEY, VIDEO_LIST_KEY]);
     settings = result[SETTINGS_KEY] || { // Provide defaults if storage is empty
-         defaultChunkSizeMinutes: 5,
+         defaultChunkSizeMinutes: 15,
          dailyGoalMinutes: 30,
-         enableReminders: true,
-         reminderTime: "09:00",
          darkMode: false
     
      };
