@@ -242,10 +242,17 @@ function handleTimeUpdate() {
 
     // Determine direction of movement
     if (currentChunkIndex > lastConfirmedChunkIndex) {
-        // Moving forward into a new chunk
-        console.log(`Entered chunk ${currentChunkIndex + 1} (index ${currentChunkIndex})`);
-        completedChunks = Math.min(currentChunkIndex + 1, totalChunks); // Mark *up to* the end of the current chunk as complete
+        console.log(`Entered chunk index ${currentChunkIndex} from ${lastConfirmedChunkIndex}`);
+        
+        // Pause automatically when moving into a new chunk (unless it's the very beginning of the video)
+        if (lastConfirmedChunkIndex !== -1) {
+            player.pause(); 
+        }
+
+        // Mark chunks prior to this one as complete, preserving progress if it's already higher
+        completedChunks = Math.max(completedChunks, Math.min(currentChunkIndex, totalChunks)); 
         lastConfirmedChunkIndex = currentChunkIndex;
+        
         updateProgressMarkers();
         updateTaskList();
         saveProgress();
@@ -267,9 +274,8 @@ function handleSeek() {
         console.log("Seeked backwards into previously completed area.");
         showRewatchConfirmation(targetChunkIndex);
     } else if (targetChunkIndex > lastConfirmedChunkIndex) {
-         // If seeking forward *past* multiple chunks, update progress accordingly
-         console.log(`Seeked forward past chunks. Updating progress to chunk ${targetChunkIndex + 1}`);
-         completedChunks = Math.min(targetChunkIndex + 1, totalChunks);
+         console.log(`Seeked forward past chunks. Updating progress to chunk ${targetChunkIndex}`);
+         completedChunks = Math.max(completedChunks, Math.min(targetChunkIndex, totalChunks));
          lastConfirmedChunkIndex = targetChunkIndex;
          updateProgressMarkers();
          updateTaskList();
@@ -504,7 +510,7 @@ function showRewatchConfirmation(targetChunkIndex) {
                 text: 'Yes, Mark Incomplete',
                 action: () => {
                     console.log("Confirmed rewatch, marking subsequent tasks incomplete.");
-                    completedChunks = targetChunkIndex + 1; // Mark *up to* the end of the target chunk
+                    completedChunks = targetChunkIndex; // Mark *up to* the end of the target chunk
                     lastConfirmedChunkIndex = targetChunkIndex; // Update confirmed index
                     updateProgressMarkers();
                     updateTaskList();
