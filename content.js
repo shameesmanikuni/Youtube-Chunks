@@ -184,7 +184,7 @@ async function saveProgress() {
                  totalChunks: totalChunks,
                  percentage: totalChunks > 0 ? Math.round((completedChunks / totalChunks) * 100) : 0
              }
-         }).catch(err => console.warn("Could not send progress update to popup:", err.message)); // Catch error if popup isn't open
+         }).catch(() => {}); // Catch error if popup isn't open
 
 
     } catch (error) {
@@ -456,22 +456,31 @@ async function addOrUpdateToggleButtonToPlayer() {
         // Styles like width/height are handled by ytp-button class
 
         taskListToggleBtn.addEventListener('click', () => {
-            if (!isTrackingEnabled) {
-                // First click on a new video: turn tracking on for this session only.
-                // This is NOT saved — reload the page and it resets to off unless
-                // the video has been added to the watch list via the popup.
+            isTrackingEnabled = !isTrackingEnabled; // Toggle the main tracking state
+
+            if (isTrackingEnabled) {
                 console.log("Enabling tracking for this session.");
-                isTrackingEnabled = true;
+                isTaskListVisible = true;
                 createOrUpdateTaskListOverlay();
                 if (videoDuration) {
                     resetAndCalculateChunks();
                     updateProgressMarkers();
                     updateTaskList();
                 }
-                updateToggleButtonState();
             } else {
-                toggleTaskListVisibility();
+                console.log("Disabling tracking for this session.");
+                isTaskListVisible = false;
+                
+                // Hide the overlay
+                if (taskListOverlay) {
+                    taskListOverlay.classList.add('hidden'); 
+                }
+                
+                // Clear the progress bar markers
+                document.querySelectorAll('.ytp-chunk-marker').forEach(marker => marker.remove());
             }
+            
+            updateToggleButtonState();
         });
 
         // Insert as the FIRST button in the right-controls group (leftmost),
@@ -485,13 +494,14 @@ async function addOrUpdateToggleButtonToPlayer() {
 
 function updateToggleButtonState() {
     if (!taskListToggleBtn) return;
+    
     if (!isTrackingEnabled) {
         taskListToggleBtn.style.opacity = '0.4';
-        taskListToggleBtn.title = 'Click to enable task tracking for this video';
-        return;
+        taskListToggleBtn.title = 'Click to enable tracking';
+    } else {
+        taskListToggleBtn.style.opacity = '1';
+        taskListToggleBtn.title = 'Click to disable tracking';
     }
-    taskListToggleBtn.style.opacity = isTaskListVisible ? '1' : '0.7';
-    taskListToggleBtn.title = isTaskListVisible ? 'Hide Course Task List' : 'Show Course Task List';
 }
 
 // --- Confirmation Modals ---
@@ -717,14 +727,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
     else if (request.action === 'toggleTaskList') {
-        toggleTaskListVisibility(); // Let the function handle the logic
-        sendResponse({ success: true, visible: isTaskListVisible });
+        isTrackingEnabled = !isTrackingEnabled; // Toggle tracking state
+        
+        if (isTrackingEnabled) {
+            isTaskListVisible = true;
+            createOrUpdateTaskListOverlay();
+            if (videoDuration) {
+                resetAndCalculateChunks();
+                updateProgressMarkers();
+                updateTaskList();
+            }
+        } else {
+            isTaskListVisible = false;
+            if (taskListOverlay) {
+                taskListOverlay.classList.add('hidden');
+            }
+            document.querySelectorAll('.ytp-chunk-marker').forEach(marker => marker.remove());
+        }
+        
+        updateToggleButtonState();
+        sendResponse({ success: true, visible: isTrackingEnabled });
         return true;
     }
-
-    // Add other message handlers if needed
-
-    // Return false or nothing if not handled or synchronous
 });
 
 // --- Run Initialization ---
