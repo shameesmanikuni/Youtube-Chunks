@@ -66,7 +66,7 @@ async function initializeExtension() {
         // The toggle button always gets created so the user has a way to turn
         // tracking on manually. The task list overlay/markers only get created
         // right now if tracking is already enabled.
-        addOrUpdateToggleButtonToPlayer();
+        await addOrUpdateToggleButtonToPlayer();
         if (isTrackingEnabled) {
             createOrUpdateTaskListOverlay();
         }
@@ -106,6 +106,25 @@ async function waitForPlayer() {
                 }
             }
         }, 500);
+    });
+}
+
+async function waitForElement(selector, maxAttempts = 20, intervalMs = 500) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const interval = setInterval(() => {
+            const el = document.querySelector(selector);
+            if (el) {
+                clearInterval(interval);
+                resolve(el);
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    reject(new Error(`Element "${selector}" not found after multiple attempts.`));
+                }
+            }
+        }, intervalMs);
     });
 }
 
@@ -406,11 +425,12 @@ function toggleTaskListVisibility(show) {
 }
 
 // --- Player Button ---
-function addOrUpdateToggleButtonToPlayer() {
-    const controls = document.querySelector('.ytp-right-controls');
-    if (!controls) {
-        console.warn("Right controls not found, cannot add toggle button yet.");
-        // Try again later maybe? Or rely on it being created by YT later.
+async function addOrUpdateToggleButtonToPlayer() {
+    let controls;
+    try {
+        controls = await waitForElement('.ytp-right-controls');
+    } catch (e) {
+        console.warn("Right controls never appeared, giving up on toggle button for this load:", e.message);
         return;
     }
 
