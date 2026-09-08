@@ -16,6 +16,7 @@ let currentVideoData = null; // { videoId, title, totalChunks, completedChunks, 
 let settings = null;
 let videoList = [];
 let contentScriptActive = false;
+let isOnVideoPage = false; // Are we currently looking at a youtube.com/watch page?
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', initializePopup);
@@ -30,18 +31,20 @@ async function initializePopup() {
            throw new Error("No active tab found.");
         }
         currentTabId = tabs[0].id;
+        isOnVideoPage = !!(tabs[0].url && tabs[0].url.includes('youtube.com/watch'));
 
-        if (!tabs[0].url || !tabs[0].url.includes('youtube.com/watch')) {
-             throw new Error("Not on a YouTube video page.");
-        }
-
-        // Load settings and video list first
         await loadDataFromStorage();
         setupEventListeners();
-        updateSettingsUI(); // Display loaded settings
+        updateSettingsUI();
 
-        // Now try to connect to content script
-        sendContentScriptMessage({ action: 'requestCurrentVideoState' }, handleVideoStateResponse);
+        if (isOnVideoPage) {
+            sendContentScriptMessage({ action: 'requestCurrentVideoState' }, handleVideoStateResponse);
+        } else {
+            contentScriptActive = false;
+            currentVideoData = null;
+            updateCurrentVideoUI();
+            showMainContent();
+        }
 
     } catch (error) {
         console.error("Popup initialization error:", error);
@@ -97,6 +100,14 @@ function showMainContent() {
     loadingState.style.display = 'none';
     errorState.style.display = 'none';
     mainContent.style.display = 'block';
+    const currentVideoSection = document.querySelector('.current-video-section');
+    if (currentVideoSection) {
+        currentVideoSection.style.display = isOnVideoPage ? 'block' : 'none';
+    }
+    const settingsSection = document.querySelector('.settings-section');
+    if (settingsSection) {
+        settingsSection.style.display = isOnVideoPage ? 'block' : 'none';
+    }
 }
 
 function updateSettingsUI() {
@@ -216,7 +227,10 @@ function renderVideoList() {
             </div>
         `;
 
-        item.querySelector('.remove-video-btn').addEventListener('click', () => handleRemoveVideo(video.videoId));
+        item.querySelector('.remove-video-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleRemoveVideo(video.videoId);
+        });
         videoListContainer.appendChild(item);
     });
 }
