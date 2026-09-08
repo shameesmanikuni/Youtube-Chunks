@@ -9,7 +9,7 @@ let player;
 let currentVideoId = null;
 let currentVideoTitle = '';
 let videoDuration = 0;
-let chunkSizeMinutes = 5; // Default, will be overridden by settings/video data
+let chunkSizeMinutes = 15; // Default, will be overridden by settings/video data
 let chunkSizeSeconds = chunkSizeMinutes * 60;
 let totalChunks = 0;
 let completedChunks = 0;
@@ -50,7 +50,7 @@ async function initializeExtension() {
         const { settings, videoData } = await loadInitialData();
 
         // Determine chunk size (video-specific > default setting)
-        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 5;
+        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 15;
         chunkSizeSeconds = chunkSizeMinutes * 60;
         console.log(`Using chunk size: ${chunkSizeMinutes} minutes (${chunkSizeSeconds} seconds)`);
 
@@ -72,7 +72,8 @@ async function initializeExtension() {
         }
 
     } catch (error) {
-        console.error('YT Course Chunk Master: Error initializing extension:', error);
+        console.error('YT Course Chunk Master: Error initializing extension:', error.name, '-', error.message);
+        console.error('Full stack:', error.stack);
     }
 }
 
@@ -415,11 +416,11 @@ function addOrUpdateToggleButtonToPlayer() {
 
         // Insert before the settings button
         const settingsBtn = controls.querySelector('.ytp-settings-button');
-        if (settingsBtn) {
+        if (settingsBtn && settingsBtn.parentNode === controls) {
             controls.insertBefore(taskListToggleBtn, settingsBtn);
         } else {
-             // Fallback: append to the end if settings button not found
-             controls.appendChild(taskListToggleBtn);
+        // Fallback: append to the end if settings button not found or not a direct child
+            controls.appendChild(taskListToggleBtn);
         }
     } else {
         console.log("Task list toggle button already exists.");
