@@ -2,11 +2,6 @@
 
 ### This Chrome extension transforms the way you watch long educational videos and courses on YouTube. If you find yourself procrastinating or overwhelmed by video length, YouTube Course Chunk Master provides the structure and motivation you need.
 
-### Images -
-![image alt](https://github.com/Dhiman-Ajay/Youtube-Course-Chunk-Master/blob/5dea9d88e5ade778d6f2a362eca8184b058ed1ef/screenshots/s1.png)
-![image alt](https://github.com/Dhiman-Ajay/Youtube-Course-Chunk-Master/blob/5dea9d88e5ade778d6f2a362eca8184b058ed1ef/screenshots/s2.png)
-![image alt](https://github.com/Dhiman-Ajay/Youtube-Course-Chunk-Master/blob/5dea9d88e5ade778d6f2a362eca8184b058ed1ef/screenshots/s3.png)
-
 #### How it Helps:
 
 Chunking: Automatically divides the video timeline into smaller, manageable time chunks (e.g., 5 minutes).
