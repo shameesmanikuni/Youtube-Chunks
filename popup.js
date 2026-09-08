@@ -198,10 +198,13 @@ function renderVideoList() {
         item.dataset.videoId = video.videoId;
 
         const percentage = video.totalChunks > 0 ? Math.round((video.completedChunks / video.totalChunks) * 100) : 0;
+        // Fall back to building the URL from videoId for entries saved before videoUrl was tracked
+        const videoUrl = video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`;
+        const safeTitle = escapeHtml(video.title || 'Untitled Video');
 
         item.innerHTML = `
             <div class="video-item-info">
-                <span class="video-item-title">${video.title || 'Untitled Video'}</span>
+                <a class="video-item-title" href="${videoUrl}" target="_blank" rel="noopener noreferrer" title="${safeTitle}">${safeTitle}</a>
                 <span class="video-item-progress">
                     ${video.completedChunks}/${video.totalChunks} tasks (<strong>${percentage}%</strong>) - ${video.chunkSizeMinutes} min chunks
                 </span>
@@ -229,6 +232,7 @@ function handleAddVideo() {
     const videoToAdd = {
         videoId: currentVideoData.videoId,
         title: currentVideoData.title,
+        videoUrl: `https://www.youtube.com/watch?v=${currentVideoData.videoId}`, // Store link so we can open it later
         totalChunks: currentVideoData.totalChunks,
         completedChunks: currentVideoData.completedChunks,
         chunkSizeMinutes: currentVideoData.chunkSizeMinutes || settings.defaultChunkSizeMinutes,
@@ -437,6 +441,13 @@ function showStatus(message, type = 'info') { // types: info, success, error
              statusMessage.className = 'message';
         }
     }, 3000);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }
 
 function truncate(str, maxLength = 30) {

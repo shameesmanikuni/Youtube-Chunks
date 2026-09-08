@@ -216,6 +216,13 @@
       text-overflow: ellipsis;
       margin-bottom: 4px;
       font-size: 13px;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+  }
+  .video-item-title:hover {
+      color: var(--primary-color);
+      text-decoration: underline;
   }
   .video-item-progress {
       font-size: 11px;
