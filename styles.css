@@ -19,16 +19,16 @@
   /* --- Progress Bar Markers --- */
   .ytp-chunk-marker {
     position: absolute;
-    width: 8px; /* Smaller dot */
-    height: 8px;
+    width: 5px; /* Smaller dot */
+    height: 5px;
     background-color: var(--danger-color);
     border-radius: 50%;
     z-index: 100;
-    margin-left: -4px; /* Center the dot */
+    margin-left: -2.5px; /* Center the dot */
     bottom: 50%; /* Vertically center */
     transform: translateY(50%);
-    border: 1.5px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
     transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
     pointer-events: none; /* Don't interfere with seeking */
   }
@@ -68,6 +68,12 @@
     opacity: 0;
     transform: translateX(100%);
     pointer-events: none;
+  }
+
+  /* Hidden while the player is in native fullscreen (see content.js,
+     which toggles this class via the fullscreenchange event). */
+  body.yt-course-fullscreen-active #yt-task-overlay {
+    display: none !important;
   }
   
   .yt-task-overlay-header {
@@ -259,9 +265,18 @@
   
   /* Toggle Button in Player */
   .ytp-tasklist-toggle-button {
-      /* Use YouTube's button class for basic styling */
-      /* Add specific styles if needed */
+      /* Use YouTube's button class for basic sizing, but force the icon
+         to actually center inside it (SVGs are inline by default and
+         drift toward the bottom-right without this). */
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
       fill: white; /* Ensure SVG is white */
+  }
+  .ytp-tasklist-toggle-button svg {
+      display: block;
+      width: 100%;
+      height: 100%;
   }
   .ytp-tasklist-toggle-button:hover svg {
       fill: #eee; /* Slight hover effect */

@@ -708,6 +708,14 @@ if (!window.ytCourseChunkMasterInitialized) {
 
      // Observe for URL changes (YouTube SPA navigation)
      let lastUrl = location.href;
+
+     function handleFullscreenChange() {
+        const isFullscreen = !!document.fullscreenElement;
+        document.body.classList.toggle('yt-course-fullscreen-active', isFullscreen);
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // older Chrome/Safari
+
      new MutationObserver(() => {
        const url = location.href;
        if (url !== lastUrl) {
