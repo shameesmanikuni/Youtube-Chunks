@@ -9,7 +9,7 @@ let player;
 let currentVideoId = null;
 let currentVideoTitle = '';
 let videoDuration = 0;
-let chunkSizeMinutes = 5; // Default, will be overridden by settings/video data
+let chunkSizeMinutes = 15; // Default, will be overridden by settings/video data
 let chunkSizeSeconds = chunkSizeMinutes * 60;
 let totalChunks = 0;
 let completedChunks = 0;
@@ -55,7 +55,7 @@ async function initializeExtension() {
         const { settings, videoData } = await loadInitialData();
 
         // Determine chunk size (video-specific > default setting)
-        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 5;
+        chunkSizeMinutes = videoData?.chunkSizeMinutes || settings?.defaultChunkSizeMinutes || 15;
         chunkSizeSeconds = chunkSizeMinutes * 60;
         console.log(`Using chunk size: ${chunkSizeMinutes} minutes (${chunkSizeSeconds} seconds)`);
 
@@ -310,6 +310,42 @@ function resetAndCalculateChunks() {
     document.querySelectorAll('.ytp-chunk-marker').forEach(marker => marker.remove());
 }
 
+// Called whenever tracking is switched back ON (either from the popup or the
+// in-player button). The rule: toggling should only ever read what's already
+// saved — it should never silently change completedChunks itself.
+function handleTrackingReenabled() {
+    if (!videoDuration) return;
+
+    // Restore completedChunks/totalChunks/lastConfirmedChunkIndex purely from
+    // the saved data. This never looks at the playhead.
+    resetAndCalculateChunks();
+
+    if (player && !isNaN(player.currentTime) && chunkSizeSeconds > 0) {
+        const currentChunkIndex = Math.floor(player.currentTime / chunkSizeSeconds);
+
+        if (currentChunkIndex < lastConfirmedChunkIndex) {
+            // The playhead is sitting somewhere already marked complete (the
+            // user scrubbed backwards while tracking was off). Don't touch
+            // anything automatically — ask the same "mark incomplete?"
+            // question used for a manual backward seek. If they answer "No",
+            // completedChunks/lastConfirmedChunkIndex are left exactly as
+            // just restored, so nothing changes unless they later reach an
+            // actually-uncompleted chunk again.
+            showRewatchConfirmation(currentChunkIndex);
+        } else if (currentChunkIndex > lastConfirmedChunkIndex) {
+            // The playhead moved AHEAD while tracking was off. Silently fold
+            // that into the anchor (without touching completedChunks) so the
+            // untracked jump doesn't get mistaken for genuinely-watched
+            // progress the next time a checkpoint is crossed.
+            lastConfirmedChunkIndex = currentChunkIndex;
+        }
+        // If equal, the playhead already matches the saved checkpoint — nothing to do.
+    }
+
+    updateProgressMarkers();
+    updateTaskList();
+}
+
 function updateProgressMarkers() {
     const progressBar = document.querySelector('.ytp-progress-bar');
     if (!progressBar || totalChunks <= 0 || !videoDuration) return;
@@ -462,11 +498,7 @@ async function addOrUpdateToggleButtonToPlayer() {
                 console.log("Enabling tracking for this session.");
                 isTaskListVisible = true;
                 createOrUpdateTaskListOverlay();
-                if (videoDuration) {
-                    resetAndCalculateChunks();
-                    updateProgressMarkers();
-                    updateTaskList();
-                }
+                handleTrackingReenabled();
             } else {
                 console.log("Disabling tracking for this session.");
                 isTaskListVisible = false;
@@ -732,11 +764,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (isTrackingEnabled) {
             isTaskListVisible = true;
             createOrUpdateTaskListOverlay();
-            if (videoDuration) {
-                resetAndCalculateChunks();
-                updateProgressMarkers();
-                updateTaskList();
-            }
+            handleTrackingReenabled();
         } else {
             isTaskListVisible = false;
             if (taskListOverlay) {

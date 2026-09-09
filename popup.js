@@ -112,7 +112,7 @@ function showMainContent() {
 
 function updateSettingsUI() {
     if (!settings) return;
-    chunkSizeInput.value = settings.defaultChunkSizeMinutes || 5; // Use default if current video has none yet
+    chunkSizeInput.value = settings.defaultChunkSizeMinutes || 15; // Use default if current video has none yet
     dailyGoalInput.value = settings.dailyGoalMinutes || 30;
 }
 

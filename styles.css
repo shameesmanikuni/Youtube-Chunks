@@ -145,6 +145,13 @@
   .yt-task-item:active {
       transform: scale(0.99);
   }
+
+  .yt-task-item.completed.current {
+    background-color: rgba(0, 200, 81, 0.1);   /* keep the green completed body */
+    border-left-color: var(--warning-color);   /* but the left accent line goes orange */
+    opacity: 1;
+    font-weight: 500;
+  }
   
   .yt-task-item.completed {
     background-color: rgba(0, 200, 81, 0.1);
