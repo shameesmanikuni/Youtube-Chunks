@@ -22,7 +22,6 @@ Dark Mode: Includes a dark mode theme for the popup interface.
 
 Stop letting long videos intimidate you. Install YouTube Course Chunk Master and start learning consistently!
 
-## Important Notes / Known Issues
+### Note:
 
-*   **Initial Chunk Loading:** Occasionally, the chunk markers and task list might not appear when a video page **first loads**. This seems related to the timing of YouTube's player initialization.
-    *   **➡️ Solution:** If you encounter this, simply **refreshing the browser tab** (Ctrl+R / Cmd+R or F5) should resolve the issue and load the chunks correctly.
+This has been forked from [Dhiman-Ajay/Youtube-Course-Chunk-Master](https://github.com/Dhiman-Ajay/Youtube-Course-Chunk-Master). But has been entirely restructured for my personal use. Removed features like 'Reminders' and fixed multiple bugs.
